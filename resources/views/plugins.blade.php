@@ -423,10 +423,55 @@
         let plugins = [];
         let currentPlugin = null;
         let currentType = '';
+        let authToken = '';
+
+        // Get auth token from various possible storage locations
+        function getAuthToken() {
+            // Try URL parameter first (for when opening from admin panel)
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('auth_data')) {
+                authToken = urlParams.get('auth_data');
+                // Store it for future use
+                try { localStorage.setItem('v2b_plugin_auth', authToken); } catch(e) {}
+                return authToken;
+            }
+            
+            // Try various localStorage keys used by V2Board admin
+            const possibleKeys = ['auth_data', 'v2b_plugin_auth', 'authorization', 'token', 'v2board_token', 'admin_token'];
+            for (const key of possibleKeys) {
+                try {
+                    const val = localStorage.getItem(key);
+                    if (val) {
+                        authToken = val;
+                        return authToken;
+                    }
+                } catch(e) {}
+            }
+            
+            // Try sessionStorage
+            for (const key of possibleKeys) {
+                try {
+                    const val = sessionStorage.getItem(key);
+                    if (val) {
+                        authToken = val;
+                        return authToken;
+                    }
+                } catch(e) {}
+            }
+            
+            return '';
+        }
 
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
-            loadPlugins();
+            getAuthToken();
+            
+            // Check if we need to show auth input
+            if (!authToken) {
+                showAuthPrompt();
+            } else {
+                loadPlugins();
+            }
             
             // Tab handlers
             document.querySelectorAll('.tab').forEach(tab => {
@@ -439,12 +484,41 @@
             });
         });
 
+        function showAuthPrompt() {
+            document.getElementById('plugins-container').innerHTML = `
+                <div style="grid-column: 1 / -1; text-align: center; padding: 40px;">
+                    <h3 style="margin-bottom: 20px; color: #262626;">Authentication Required</h3>
+                    <p style="color: #595959; margin-bottom: 20px;">Please enter your admin auth token to access plugin management.</p>
+                    <p style="color: #8c8c8c; margin-bottom: 20px; font-size: 13px;">
+                        You can get your auth token from the browser console in the admin panel by running:<br>
+                        <code style="background: #f5f5f5; padding: 4px 8px; border-radius: 4px;">localStorage.getItem('auth_data')</code>
+                    </p>
+                    <div style="max-width: 400px; margin: 0 auto;">
+                        <input type="text" id="auth-input" placeholder="Paste your auth token here..." 
+                               style="width: 100%; padding: 12px; border: 1px solid #d9d9d9; border-radius: 6px; margin-bottom: 12px;">
+                        <button class="btn btn-primary" onclick="setAuthToken()" style="width: 100%;">Authenticate</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function setAuthToken() {
+            const input = document.getElementById('auth-input');
+            if (input && input.value.trim()) {
+                authToken = input.value.trim();
+                try { localStorage.setItem('v2b_plugin_auth', authToken); } catch(e) {}
+                loadPlugins();
+            } else {
+                showToast('Please enter a valid auth token', 'error');
+            }
+        }
+
         async function apiCall(endpoint, method = 'GET', data = null) {
             const options = {
                 method,
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': localStorage.getItem('auth_data') || ''
+                    'Authorization': authToken
                 }
             };
             if (data) {
@@ -453,6 +527,11 @@
             const response = await fetch(API_BASE + endpoint, options);
             const result = await response.json();
             if (!response.ok) {
+                if (response.status === 403) {
+                    authToken = '';
+                    try { localStorage.removeItem('v2b_plugin_auth'); } catch(e) {}
+                    showAuthPrompt();
+                }
                 throw new Error(result.message || 'Request failed');
             }
             return result;
@@ -700,7 +779,7 @@
                 const response = await fetch(API_BASE + '/plugin/upload', {
                     method: 'POST',
                     headers: {
-                        'Authorization': localStorage.getItem('auth_data') || ''
+                        'Authorization': authToken
                     },
                     body: formData
                 });
