@@ -1,0 +1,278 @@
+{
+  "name": "NotifyPro - Multi-Channel Admin Alerts",
+  "code": "notify_pro",
+  "type": "feature",
+  "version": "1.6.0",
+  "description": "Multi-channel admin notification plugin for XBoard. Supports Discord, Telegram, Email, bilingual EN/ZH content, visitor tracking, per-page filters, and per-field configurable alerts.",
+  "author": "@gracelyncn | @Teamtendex | EN+ZH by ssh-style",
+  "require": {
+    "xboard": ">=1.0.0"
+  },
+  "config": {
+    "discord_enabled": {
+      "type": "boolean",
+      "default": false,
+      "label": "Enable Discord notifications",
+      "description": "Enable or disable Discord Webhook notifications."
+    },
+    "discord_webhook_url": {
+      "type": "string",
+      "default": "",
+      "label": "Discord Webhook URL",
+      "description": "Your Discord channel Webhook URL."
+    },
+
+    "telegram_enabled": {
+      "type": "boolean",
+      "default": false,
+      "label": "Enable Telegram notifications",
+      "description": "Enable or disable Telegram bot notifications (supports private chat / groups / channels)."
+    },
+    "telegram_bot_token": {
+      "type": "string",
+      "default": "",
+      "label": "Telegram Bot Token",
+      "description": "Telegram bot token from @BotFather."
+    },
+    "telegram_chat_id": {
+      "type": "string",
+      "default": "",
+      "label": "Telegram Chat ID (user / group / channel)",
+      "description": "Chat ID that will receive alerts:\n- User: direct user chat id\n- Group: add the bot to the group, grant posting permission, then use group chat id (usually -100...)\n- Channel: add bot as admin to the channel and use the channel chat id or @channel_username"
+    },
+
+    "email_enabled": {
+      "type": "boolean",
+      "default": false,
+      "label": "Enable Email notifications",
+      "description": "Enable or disable email notifications (sent via XBoard queue)."
+    },
+    "email_recipients": {
+      "type": "string",
+      "default": "",
+      "label": "Email recipients",
+      "description": "Comma-separated list of recipient email addresses."
+    },
+
+    "language_mode": {
+      "type": "string",
+      "default": "en_zh",
+      "label": "Notification language mode",
+      "description": "Notification language: en (English only), zh (Chinese only), en_zh (bilingual EN+ZH)."
+    },
+
+    "notify_new_user": {
+      "type": "boolean",
+      "default": true,
+      "label": "Alert: New user registration",
+      "description": "Send an alert when a new user registers."
+    },
+    "notify_new_order": {
+      "type": "boolean",
+      "default": true,
+      "label": "Alert: New order created",
+      "description": "Send an alert when a new order is created."
+    },
+    "notify_order_paid": {
+      "type": "boolean",
+      "default": true,
+      "label": "Alert: Order paid",
+      "description": "Send an alert when an order is successfully paid."
+    },
+    "notify_order_cancelled": {
+      "type": "boolean",
+      "default": true,
+      "label": "Alert: Order cancelled",
+      "description": "Send an alert when an order is cancelled."
+    },
+    "notify_ticket_open": {
+      "type": "boolean",
+      "default": true,
+      "label": "Alert: Ticket opened",
+      "description": "Send an alert when a support ticket is created (includes subject and content)."
+    },
+    "notify_ticket_close": {
+      "type": "boolean",
+      "default": true,
+      "label": "Alert: Ticket closed",
+      "description": "Send an alert when a support ticket is closed (includes subject and content)."
+    },
+    "notify_node_failure": {
+      "type": "boolean",
+      "default": true,
+      "label": "Alert: Node offline",
+      "description": "Send an alert when a node is considered offline (no heartbeat for a long time)."
+    },
+    "notify_daily_report": {
+      "type": "boolean",
+      "default": true,
+      "label": "Enable daily report",
+      "description": "Send a daily operational summary report."
+    },
+    "daily_report_time": {
+      "type": "string",
+      "default": "09:00",
+      "label": "Daily report time",
+      "description": "Time to send the daily report (24h format, e.g. 09:00)."
+    },
+    "node_check_interval": {
+      "type": "string",
+      "default": "5",
+      "label": "Node check interval (minutes)",
+      "description": "Interval in minutes to check node status."
+    },
+    "site_name": {
+      "type": "string",
+      "default": "XBoard",
+      "label": "Site name",
+      "description": "Site name displayed in notifications."
+    },
+    "site_url": {
+      "type": "string",
+      "default": "",
+      "label": "Site URL",
+      "description": "Site URL displayed in notifications."
+    },
+    "currency_symbol": {
+      "type": "string",
+      "default": "$",
+      "label": "Currency symbol",
+      "description": "Currency symbol used in notifications (e.g. $, ¥, €, £)."
+    },
+
+    "notify_visitor": {
+      "type": "boolean",
+      "default": false,
+      "label": "Visitor alerts (experimental)",
+      "description": "Send an alert when a real visitor first accesses the site (deduped by IP+UA). Recommended only for low/medium traffic sites."
+    },
+    "notify_visitor_min_interval": {
+      "type": "number",
+      "default": 10,
+      "label": "Visitor minimum interval (minutes)",
+      "description": "The same IP+UA will only trigger a visitor alert once within this interval (in minutes)."
+    },
+    "notify_visitor_min_user_agent_length": {
+      "type": "number",
+      "default": 20,
+      "label": "Minimum User-Agent length",
+      "description": "User-Agent strings shorter than this length are treated as bots/noise and will not trigger visitor alerts."
+    },
+    "notify_visitor_paths": {
+      "type": "string",
+      "default": "",
+      "label": "Tracked paths only (optional)",
+      "description": "Only track and alert visitors for these paths. Comma-separated paths like: / , /pricing , /blog. Leave empty to track all non-API, non-static GET pages."
+    },
+    "notify_visitor_include_path": {
+      "type": "boolean",
+      "default": true,
+      "label": "Visitor alert: include request path",
+      "description": "Include the visited path (URL path) in visitor alerts."
+    },
+    "notify_visitor_include_browser": {
+      "type": "boolean",
+      "default": true,
+      "label": "Visitor alert: include browser/device",
+      "description": "Include browser, OS, and device type in visitor alerts."
+    },
+    "notify_visitor_include_referer": {
+      "type": "boolean",
+      "default": true,
+      "label": "Visitor alert: include Referer",
+      "description": "Include the HTTP Referer (source URL) in visitor alerts."
+    },
+    "notify_visitor_include_location": {
+      "type": "boolean",
+      "default": true,
+      "label": "Visitor alert: include IP geolocation",
+      "description": "Show IP geolocation (country/city and flag) in visitor alerts (using ip2region/IP database)."
+    },
+
+    "alert_include_user_email": {
+      "type": "boolean",
+      "default": true,
+      "label": "Alert fields: user email",
+      "description": "Show user email in user/order/ticket alerts."
+    },
+    "alert_include_user_id": {
+      "type": "boolean",
+      "default": true,
+      "label": "Alert fields: user ID",
+      "description": "Show user ID in alerts."
+    },
+    "alert_include_order_no": {
+      "type": "boolean",
+      "default": true,
+      "label": "Alert fields: order number",
+      "description": "Show order number in order-related alerts."
+    },
+    "alert_include_order_id": {
+      "type": "boolean",
+      "default": true,
+      "label": "Alert fields: order ID",
+      "description": "Show order ID in order-related alerts."
+    },
+    "alert_include_plan_name": {
+      "type": "boolean",
+      "default": true,
+      "label": "Alert fields: plan name",
+      "description": "Show plan name in order/user/ticket alerts when available."
+    },
+    "alert_include_ip": {
+      "type": "boolean",
+      "default": true,
+      "label": "Alert fields: IP address",
+      "description": "Show IP address in user/order/ticket/visitor alerts (where applicable)."
+    },
+    "alert_include_referer": {
+      "type": "boolean",
+      "default": true,
+      "label": "Alert fields: Referer",
+      "description": "Show Referer (source URL) where applicable (mainly visitor alerts)."
+    },
+    "alert_include_node_id": {
+      "type": "boolean",
+      "default": true,
+      "label": "Alert fields: node ID",
+      "description": "Show node ID in node offline alerts."
+    },
+    "alert_include_node_host": {
+      "type": "boolean",
+      "default": true,
+      "label": "Alert fields: node host",
+      "description": "Show node host in node offline alerts."
+    },
+
+    "daily_report_include_users": {
+      "type": "boolean",
+      "default": true,
+      "label": "Daily report: user statistics",
+      "description": "Include user-related stats (new/active/total) in the daily report."
+    },
+    "daily_report_include_orders": {
+      "type": "boolean",
+      "default": true,
+      "label": "Daily report: order statistics",
+      "description": "Include order stats (created/completed) in the daily report."
+    },
+    "daily_report_include_revenue": {
+      "type": "boolean",
+      "default": true,
+      "label": "Daily report: revenue statistics",
+      "description": "Include revenue stats in the daily report."
+    },
+    "daily_report_include_nodes": {
+      "type": "boolean",
+      "default": true,
+      "label": "Daily report: node statistics",
+      "description": "Include node online/offline stats in the daily report."
+    },
+    "daily_report_include_visits": {
+      "type": "boolean",
+      "default": true,
+      "label": "Daily report: visits statistics",
+      "description": "Include today's visit count in the daily report."
+    }
+  }
+}

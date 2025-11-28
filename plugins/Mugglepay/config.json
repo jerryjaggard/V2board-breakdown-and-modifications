@@ -1,0 +1,8 @@
+{
+"name": "Mugglepay",
+"code": "mugglepay",
+"type": "payment",
+"version": "1.0.0",
+"description": "Mugglepay payment plugin for cedar2025 XBoard",
+"author": "Converted by ChatGPT"
+}
