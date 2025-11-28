@@ -314,7 +314,9 @@
     </div>
     
     <script>
-        // Global admin app
+        // Global admin app constants
+        const MIN_TOKEN_LENGTH = 20; // Minimum length for a valid auth token
+        
         function adminApp() {
             return {
                 sidebarOpen: false,
@@ -344,6 +346,25 @@
                     this.loadStats();
                 },
                 
+                // Helper to check if an error is an authentication error
+                isAuthError(error) {
+                    if (!error) return false;
+                    const errorMsg = (error.message || '').toLowerCase();
+                    const status = error.status || 0;
+                    // Check for common auth error patterns
+                    return status === 401 || 
+                           status === 403 || 
+                           errorMsg.includes('unauthorized') ||
+                           errorMsg.includes('登录') ||
+                           errorMsg.includes('鉴权') ||
+                           errorMsg.includes('过期');
+                },
+                
+                // Helper to validate token format
+                isValidToken(value) {
+                    return typeof value === 'string' && value.length >= MIN_TOKEN_LENGTH;
+                },
+                
                 getAuthToken() {
                     // Try multiple storage keys and formats
                     const keys = ['auth_data', 'admin_auth', 'token', 'Authorization'];
@@ -367,7 +388,7 @@
                                 }
                             } catch (e) {
                                 // Not JSON, might be raw token
-                                if (value.length > 20) {
+                                if (this.isValidToken(value)) {
                                     return value;
                                 }
                             }
@@ -383,7 +404,7 @@
                                 if (parsed.auth_data) return parsed.auth_data;
                                 if (parsed.token) return parsed.token;
                             } catch (e) {
-                                if (value.length > 20) return value;
+                                if (this.isValidToken(value)) return value;
                             }
                         }
                     }
@@ -400,7 +421,7 @@
                         }
                     } catch (e) {
                         console.error('Failed to load stats:', e);
-                        if (e.message === 'Unauthorized' || e.message.includes('鉴权') || e.status === 401 || e.status === 403) {
+                        if (this.isAuthError(e)) {
                             this.authError = true;
                             // Clear potentially invalid auth
                             localStorage.removeItem('auth_data');
