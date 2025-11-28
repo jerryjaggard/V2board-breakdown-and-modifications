@@ -20,7 +20,15 @@ use Illuminate\Support\Facades\Http;
  * - 邮件通知管理员
  * - 用户邮件通知（中文默认内容）
  * 
- * 配置项（在 v2board 配置中设置）:
+ * 配置方式（推荐 .env 文件，无需访问数据库）:
+ * 
+ * 在 .env 文件中添加:
+ * V2BOARD_TELEGRAM_BOT_TOKEN=你的Bot Token
+ * V2BOARD_NOTIFY_TELEGRAM_CHAT_ID=你的Chat ID
+ * V2BOARD_NOTIFY_DISCORD_WEBHOOK=Discord Webhook URL
+ * V2BOARD_NOTIFY_ADMIN_EMAIL=admin@example.com
+ * 
+ * 或者在数据库 v2_settings 表中设置:
  * - telegram_bot_token: Telegram 机器人 Token
  * - notify_telegram_chat_id: Telegram 接收通知的 Chat ID
  * - notify_discord_webhook: Discord Webhook URL
@@ -29,12 +37,39 @@ use Illuminate\Support\Facades\Http;
 class NotificationService
 {
     /**
+     * 获取配置项（优先从 .env，然后从数据库）
+     */
+    protected static function getConfig(string $key, $default = null)
+    {
+        // 配置映射: .env 名称 => v2board 配置名称
+        $envMapping = [
+            'telegram_bot_token' => 'V2BOARD_TELEGRAM_BOT_TOKEN',
+            'notify_telegram_chat_id' => 'V2BOARD_NOTIFY_TELEGRAM_CHAT_ID',
+            'notify_discord_webhook' => 'V2BOARD_NOTIFY_DISCORD_WEBHOOK',
+            'notify_admin_email' => 'V2BOARD_NOTIFY_ADMIN_EMAIL',
+            'app_name' => 'V2BOARD_APP_NAME',
+            'app_url' => 'V2BOARD_APP_URL',
+        ];
+
+        // 优先从 .env 获取
+        if (isset($envMapping[$key])) {
+            $envValue = env($envMapping[$key]);
+            if ($envValue !== null && $envValue !== '') {
+                return $envValue;
+            }
+        }
+
+        // 回退到数据库配置
+        return config("v2board.{$key}", $default);
+    }
+
+    /**
      * 用户注册后发送通知
      */
     public static function userRegistered(User $user): void
     {
-        $siteName = config('v2board.app_name', 'V2Board');
-        $siteUrl = config('v2board.app_url', '');
+        $siteName = self::getConfig('app_name', 'V2Board');
+        $siteUrl = self::getConfig('app_url', '');
 
         // 发送欢迎邮件给用户
         self::sendUserWelcomeEmail($user, $siteName, $siteUrl);
@@ -57,8 +92,8 @@ class NotificationService
         if (!$user) return;
 
         $plan = Plan::find($order->plan_id);
-        $siteName = config('v2board.app_name', 'V2Board');
-        $siteUrl = config('v2board.app_url', '');
+        $siteName = self::getConfig('app_name', 'V2Board');
+        $siteUrl = self::getConfig('app_url', '');
         $amount = number_format($order->total_amount / 100, 2);
 
         // 发送订单创建邮件给用户
@@ -76,8 +111,8 @@ class NotificationService
         if (!$user) return;
 
         $plan = Plan::find($order->plan_id);
-        $siteName = config('v2board.app_name', 'V2Board');
-        $siteUrl = config('v2board.app_url', '');
+        $siteName = self::getConfig('app_name', 'V2Board');
+        $siteUrl = self::getConfig('app_url', '');
         $amount = number_format($order->total_amount / 100, 2);
         $planName = $plan ? $plan->name : '套餐';
 
@@ -151,8 +186,8 @@ class NotificationService
         $user = User::find($ticket->user_id);
         if (!$user) return;
 
-        $siteName = config('v2board.app_name', 'V2Board');
-        $siteUrl = config('v2board.app_url', '');
+        $siteName = self::getConfig('app_name', 'V2Board');
+        $siteUrl = self::getConfig('app_url', '');
 
         self::sendTicketReplyEmail($user, $ticket, $siteName, $siteUrl);
     }
@@ -318,8 +353,8 @@ class NotificationService
      */
     protected static function sendTelegram(string $message): void
     {
-        $botToken = config('v2board.telegram_bot_token');
-        $chatId = config('v2board.notify_telegram_chat_id');
+        $botToken = self::getConfig('telegram_bot_token');
+        $chatId = self::getConfig('notify_telegram_chat_id');
 
         if (!$botToken || !$chatId) return;
 
@@ -340,7 +375,7 @@ class NotificationService
      */
     protected static function sendDiscord(string $title, string $message): void
     {
-        $webhookUrl = config('v2board.notify_discord_webhook');
+        $webhookUrl = self::getConfig('notify_discord_webhook');
 
         if (!$webhookUrl) return;
 
@@ -368,8 +403,8 @@ class NotificationService
      */
     protected static function sendAdminEmail(string $title, string $message): void
     {
-        $adminEmail = config('v2board.notify_admin_email');
-        $siteName = config('v2board.app_name', 'V2Board');
+        $adminEmail = self::getConfig('notify_admin_email');
+        $siteName = self::getConfig('app_name', 'V2Board');
 
         if (!$adminEmail) return;
 
@@ -384,7 +419,7 @@ class NotificationService
                 'template_value' => [
                     'name' => '管理员',
                     'content' => $cleanMessage,
-                    'url' => config('v2board.app_url', '')
+                    'url' => self::getConfig('app_url', '')
                 ]
             ]);
         } catch (\Exception $e) {

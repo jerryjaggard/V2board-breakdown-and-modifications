@@ -1,6 +1,6 @@
 # V2Board 通知系统配置指南
 
-本系统已内置完整的通知功能，支持 Telegram、Discord 和邮件通知。无需安装额外插件，只需在数据库中配置几个参数即可。
+本系统已内置完整的通知功能，支持 Telegram、Discord 和邮件通知。无需安装额外插件，只需配置几个参数即可。
 
 ## 功能介绍
 
@@ -22,9 +22,29 @@
 
 ## 配置方法
 
-### 方法一：通过数据库配置（推荐）
+### 方法一：通过 .env 文件配置（推荐，最简单）
 
-在 `v2_settings` 表中添加以下配置：
+编辑项目根目录的 `.env` 文件，添加以下配置：
+
+```env
+# Telegram 机器人 Token (从 @BotFather 获取)
+V2BOARD_TELEGRAM_BOT_TOKEN=你的Bot Token
+
+# Telegram Chat ID (发送消息给 @userinfobot 获取)
+V2BOARD_NOTIFY_TELEGRAM_CHAT_ID=你的Chat ID
+
+# Discord Webhook URL (可选)
+V2BOARD_NOTIFY_DISCORD_WEBHOOK=你的Discord Webhook URL
+
+# 管理员邮箱 (可选，接收管理通知)
+V2BOARD_NOTIFY_ADMIN_EMAIL=admin@example.com
+```
+
+保存文件后即可生效，无需重启服务。
+
+### 方法二：通过数据库配置
+
+如果不方便编辑 .env 文件，也可以在 `v2_settings` 表中添加配置：
 
 ```sql
 -- Telegram 机器人 Token
@@ -44,12 +64,7 @@ INSERT INTO v2_settings (name, value) VALUES ('notify_admin_email', 'admin@examp
 ON DUPLICATE KEY UPDATE value = 'admin@example.com';
 ```
 
-### 方法二：通过 V2Board 后台配置
-
-1. 登录 V2Board 管理后台
-2. 进入「系统配置」→「Telegram」标签页
-3. 填写 `Telegram Bot Token`
-4. 其他配置需要直接在数据库中添加
+**注意：** .env 配置优先级高于数据库配置。
 
 ---
 
