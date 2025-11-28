@@ -93,12 +93,15 @@
                         }
                         
                         if (result.data && result.data.is_admin) {
-                            // Store auth data
+                            // Store auth data in multiple formats for compatibility
                             const authData = {
                                 auth_data: result.data.auth_data,
                                 email: this.email,
-                                is_admin: true
+                                is_admin: true,
+                                token: result.data.auth_data
                             };
+                            
+                            // Store in different keys for compatibility with both panels
                             localStorage.setItem('auth_data', JSON.stringify(authData));
                             localStorage.setItem('admin_auth', result.data.auth_data);
                             

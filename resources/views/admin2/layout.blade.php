@@ -322,6 +322,7 @@
                 adminEmail: '',
                 pendingTickets: 0,
                 authToken: '',
+                authError: false,
                 toast: {
                     show: false,
                     message: '',
@@ -329,20 +330,65 @@
                 },
                 
                 init() {
-                    // Get auth data from localStorage
-                    const authData = localStorage.getItem('auth_data') || localStorage.getItem('admin_auth');
-                    if (authData) {
-                        try {
-                            const parsed = JSON.parse(authData);
-                            this.authToken = parsed.auth_data || parsed.token || authData;
-                            this.adminEmail = parsed.email || '';
-                        } catch (e) {
-                            this.authToken = authData;
+                    // Get auth data from multiple possible localStorage keys
+                    // V2Board old admin stores auth in different ways
+                    this.authToken = this.getAuthToken();
+                    
+                    if (!this.authToken) {
+                        // Redirect to login
+                        window.location.href = '/{{ $secure_path }}/admin2/login';
+                        return;
+                    }
+                    
+                    // Load pending tickets count and verify auth
+                    this.loadStats();
+                },
+                
+                getAuthToken() {
+                    // Try multiple storage keys and formats
+                    const keys = ['auth_data', 'admin_auth', 'token', 'Authorization'];
+                    
+                    for (const key of keys) {
+                        const value = localStorage.getItem(key);
+                        if (value) {
+                            try {
+                                const parsed = JSON.parse(value);
+                                if (parsed.auth_data) {
+                                    this.adminEmail = parsed.email || '';
+                                    return parsed.auth_data;
+                                }
+                                if (parsed.token) {
+                                    this.adminEmail = parsed.email || '';
+                                    return parsed.token;
+                                }
+                                if (parsed.data && parsed.data.auth_data) {
+                                    this.adminEmail = parsed.data.email || '';
+                                    return parsed.data.auth_data;
+                                }
+                            } catch (e) {
+                                // Not JSON, might be raw token
+                                if (value.length > 20) {
+                                    return value;
+                                }
+                            }
                         }
                     }
                     
-                    // Load pending tickets count
-                    this.loadStats();
+                    // Check sessionStorage as well
+                    for (const key of keys) {
+                        const value = sessionStorage.getItem(key);
+                        if (value) {
+                            try {
+                                const parsed = JSON.parse(value);
+                                if (parsed.auth_data) return parsed.auth_data;
+                                if (parsed.token) return parsed.token;
+                            } catch (e) {
+                                if (value.length > 20) return value;
+                            }
+                        }
+                    }
+                    
+                    return '';
                 },
                 
                 async loadStats() {
@@ -350,9 +396,17 @@
                         const response = await this.api('/admin/stat/getOverride');
                         if (response.data) {
                             this.pendingTickets = response.data.ticket_pending_total || 0;
+                            this.authError = false;
                         }
                     } catch (e) {
                         console.error('Failed to load stats:', e);
+                        if (e.message === 'Unauthorized' || e.message.includes('鉴权') || e.status === 401 || e.status === 403) {
+                            this.authError = true;
+                            // Clear potentially invalid auth
+                            localStorage.removeItem('auth_data');
+                            localStorage.removeItem('admin_auth');
+                            window.location.href = '/{{ $secure_path }}/admin2/login';
+                        }
                     }
                 },
                 
@@ -374,7 +428,18 @@
                     const result = await response.json();
                     
                     if (!response.ok) {
-                        throw new Error(result.message || 'API Error');
+                        const error = new Error(result.message || 'API Error');
+                        error.status = response.status;
+                        
+                        // Handle auth errors
+                        if (response.status === 401 || response.status === 403) {
+                            localStorage.removeItem('auth_data');
+                            localStorage.removeItem('admin_auth');
+                            window.location.href = '/{{ $secure_path }}/admin2/login';
+                            throw error;
+                        }
+                        
+                        throw error;
                     }
                     
                     return result;
