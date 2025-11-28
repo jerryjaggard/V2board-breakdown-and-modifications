@@ -35,6 +35,9 @@ class TicketService {
             HookManager::call('ticket.reply.user.after', $ticket);
         }
         
+        // Plugin hook: general reply after (for any reply)
+        HookManager::call('ticket.reply.after', [$ticket, $ticketMessage]);
+        
         return $ticketMessage;
     }
 
@@ -66,6 +69,9 @@ class TicketService {
         
         // Plugin hook: after admin reply
         HookManager::call('ticket.reply.admin.after', [$ticket, $ticketMessage]);
+        
+        // Plugin hook: general reply after (for any reply)
+        HookManager::call('ticket.reply.after', [$ticket, $ticketMessage]);
     }
 
     // 半小时内不再重复通知

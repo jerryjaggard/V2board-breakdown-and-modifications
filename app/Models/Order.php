@@ -14,4 +14,28 @@ class Order extends Model
         'updated_at' => 'timestamp',
         'surplus_order_ids' => 'array'
     ];
+
+    /**
+     * Get the payment associated with the order.
+     */
+    public function payment()
+    {
+        return $this->belongsTo(Payment::class, 'payment_id');
+    }
+
+    /**
+     * Get the user associated with the order.
+     */
+    public function user()
+    {
+        return $this->belongsTo(User::class, 'user_id');
+    }
+
+    /**
+     * Get the plan associated with the order.
+     */
+    public function plan()
+    {
+        return $this->belongsTo(Plan::class, 'plan_id');
+    }
 }

@@ -183,9 +183,10 @@ class Plugin extends AbstractPlugin
     $this->sendMessage($msg, $welcomeText);
   }
 
-  public function handleMessage(bool $handled, array $data): bool
+  public function handleMessage(bool $handled, $data): bool
   {
-    list($msg) = $data;
+    // Handle both array format (from filter) and direct object (from older format)
+    $msg = is_array($data) ? $data[0] : $data;
     if ($handled)
       return $handled;
 
@@ -238,9 +239,10 @@ class Plugin extends AbstractPlugin
     return false;
   }
 
-  public function handleUnknownCommand(array $data): void
+  public function handleUnknownCommand($data): void
   {
-    list($msg) = $data;
+    // Handle both array format and direct object
+    $msg = is_array($data) ? $data[0] : $data;
     if (!$msg->is_private || $msg->message_type !== 'message')
       return;
 
@@ -248,16 +250,23 @@ class Plugin extends AbstractPlugin
     $this->telegramService->sendMessage($msg->chat_id, $helpText);
   }
 
-  public function handleError(array $data): void
+  public function handleError($data): void
   {
-    list($msg, $e) = $data;
+    // Handle both array format and direct object
+    if (is_array($data)) {
+      $msg = $data[0] ?? null;
+      $e = $data[1] ?? null;
+    } else {
+      $msg = $data;
+      $e = null;
+    }
     Log::error('Telegram 消息处理错误', [
       'chat_id' => $msg->chat_id ?? 'unknown',
       'command' => $msg->command ?? 'unknown',
       'message_type' => $msg->message_type ?? 'unknown',
-      'error' => $e->getMessage(),
-      'file' => $e->getFile(),
-      'line' => $e->getLine()
+      'error' => $e ? $e->getMessage() : 'unknown',
+      'file' => $e ? $e->getFile() : 'unknown',
+      'line' => $e ? $e->getLine() : 'unknown'
     ]);
   }
 
@@ -358,7 +367,7 @@ class Plugin extends AbstractPlugin
       return;
     }
 
-    $subscribeUrl = Helper::getSubscribeUrl($user->token);
+    $subscribeUrl = Helper::getSubscribeUrl('/api/v1/client/subscribe?token=' . $user->token);
     $text = sprintf("🔗 您的订阅链接：\n\n%s", $subscribeUrl);
 
     $this->sendMessage($msg, $text);

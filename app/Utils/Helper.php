@@ -108,6 +108,17 @@ class Helper
         }
     }
 
+    /**
+     * Convert bytes to GB
+     *
+     * @param float|int $bytes
+     * @return float
+     */
+    public static function transferToGB($bytes): float
+    {
+        return $bytes / 1073741824;
+    }
+
     public static function getSubscribeUrl($path)
     {
         $subscribeUrls = explode(',', config('v2board.subscribe_url'));

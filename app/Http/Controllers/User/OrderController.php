@@ -10,6 +10,7 @@ use App\Services\CouponService;
 use App\Services\OrderService;
 use App\Services\PaymentService;
 use App\Services\PlanService;
+use App\Services\Plugin\HookManager;
 use App\Services\UserService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -114,6 +115,9 @@ class OrderController extends Controller
             abort(500, __('This subscription has expired, please change to another subscription'));
         }
 
+        // Plugin hook: before order creation
+        HookManager::call('order.create.before', [$user, $plan, $request->input('period'), $request->input('coupon_code')]);
+
         DB::beginTransaction();
         $order = new Order();
         $orderService = new OrderService($order);
@@ -162,6 +166,9 @@ class OrderController extends Controller
         }
 
         DB::commit();
+
+        // Plugin hook: after order creation
+        HookManager::call('order.create.after', $order);
 
         return response([
             'data' => $order->trade_no

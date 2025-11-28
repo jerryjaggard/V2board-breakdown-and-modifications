@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Guest;
 
+use App\Services\Plugin\HookManager;
 use App\Services\TelegramService;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
@@ -32,6 +33,10 @@ class TelegramController extends Controller
     {
         if (!$this->msg) return;
         $msg = $this->msg;
+        
+        // Plugin hook: before telegram message handling
+        HookManager::call('telegram.message.before', $msg);
+        
         $commandName = explode('@', $msg->command);
 
         // To reduce request, only commands contains @ will get the bot name
@@ -43,6 +48,14 @@ class TelegramController extends Controller
         }
 
         try {
+            // Allow plugins to filter and handle the message
+            $handled = HookManager::filter('telegram.message.handle', false, $msg);
+            if ($handled === true) {
+                // Plugin hook: after message handled
+                HookManager::call('telegram.message.after', $msg);
+                return;
+            }
+            
             foreach (glob(base_path('app//Plugins//Telegram//Commands') . '/*.php') as $file) {
                 $command = basename($file, '.php');
                 $class = '\\App\\Plugins\\Telegram\\Commands\\' . $command;
@@ -52,16 +65,26 @@ class TelegramController extends Controller
                     if (!isset($instance->command)) continue;
                     if ($msg->command !== $instance->command) continue;
                     $instance->handle($msg);
+                    // Plugin hook: after message handled
+                    HookManager::call('telegram.message.after', $msg);
                     return;
                 }
                 if ($msg->message_type === 'reply_message') {
                     if (!isset($instance->regex)) continue;
                     if (!preg_match($instance->regex, $msg->reply_text, $match)) continue;
                     $instance->handle($msg, $match);
+                    // Plugin hook: after message handled
+                    HookManager::call('telegram.message.after', $msg);
                     return;
                 }
             }
+            
+            // Plugin hook: unhandled message
+            HookManager::call('telegram.message.unhandled', $msg);
+            
         } catch (\Exception $e) {
+            // Plugin hook: telegram message error
+            HookManager::call('telegram.message.error', [$msg, $e]);
             $this->telegramService->sendMessage($msg->chat_id, $e->getMessage());
         }
     }

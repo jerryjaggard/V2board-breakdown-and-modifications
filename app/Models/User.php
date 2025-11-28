@@ -13,4 +13,12 @@ class User extends Model
         'created_at' => 'timestamp',
         'updated_at' => 'timestamp'
     ];
+
+    /**
+     * Get the plan associated with the user.
+     */
+    public function plan()
+    {
+        return $this->belongsTo(Plan::class, 'plan_id');
+    }
 }
