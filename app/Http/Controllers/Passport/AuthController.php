@@ -9,6 +9,7 @@ use App\Http\Requests\Passport\AuthLogin;
 use App\Jobs\SendEmailJob;
 use App\Services\AuthService;
 use App\Services\Plugin\HookManager;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use App\Models\Plan;
@@ -184,6 +185,9 @@ class AuthController extends Controller
 
         // Plugin hook: after registration
         HookManager::call('user.register.after', $user);
+
+        // Send welcome notification
+        NotificationService::userRegistered($user);
 
         $authService = new AuthService($user);
 

@@ -12,6 +12,7 @@ use App\Services\PaymentService;
 use App\Services\PlanService;
 use App\Services\Plugin\HookManager;
 use App\Services\UserService;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -169,6 +170,9 @@ class OrderController extends Controller
 
         // Plugin hook: after order creation
         HookManager::call('order.create.after', $order);
+
+        // Send order created notification
+        NotificationService::orderCreated($order);
 
         return response([
             'data' => $order->trade_no

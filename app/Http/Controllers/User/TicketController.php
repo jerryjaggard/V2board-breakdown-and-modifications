@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Services\Plugin\HookManager;
 use App\Services\TelegramService;
 use App\Services\TicketService;
+use App\Services\NotificationService;
 use App\Utils\Dict;
 use Illuminate\Http\Request;
 use App\Models\Ticket;
@@ -74,6 +75,9 @@ class TicketController extends Controller
         }
         DB::commit();
         $this->sendNotify($ticket, $request->input('message'));
+        
+        // Send notification for new ticket
+        NotificationService::ticketCreated($ticket);
         
         // Plugin hook: after ticket creation
         HookManager::call('ticket.create.after', $ticket);
@@ -194,6 +198,9 @@ class TicketController extends Controller
         }
         DB::commit();
         $this->sendNotify($ticket, $message);
+        
+        // Send notification for new ticket (withdraw)
+        NotificationService::ticketCreated($ticket);
         
         // Plugin hook: after ticket creation
         HookManager::call('ticket.create.after', $ticket);

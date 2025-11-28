@@ -7,6 +7,7 @@ use App\Models\Ticket;
 use App\Models\TicketMessage;
 use App\Models\User;
 use App\Services\Plugin\HookManager;
+use App\Services\NotificationService;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
@@ -33,6 +34,8 @@ class TicketService {
         // Plugin hook: after user reply
         if ($userId === $ticket->user_id) {
             HookManager::call('ticket.reply.user.after', $ticket);
+            // Send notification when user replies
+            NotificationService::ticketReplied($ticket, $ticketMessage);
         }
         
         // Plugin hook: general reply after (for any reply)
@@ -66,6 +69,9 @@ class TicketService {
         }
         DB::commit();
         $this->sendEmailNotify($ticket, $ticketMessage);
+        
+        // Send notification when admin replies
+        NotificationService::ticketAdminReplied($ticket, $ticketMessage);
         
         // Plugin hook: after admin reply
         HookManager::call('ticket.reply.admin.after', [$ticket, $ticketMessage]);

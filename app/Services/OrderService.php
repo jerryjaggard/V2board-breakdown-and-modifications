@@ -7,6 +7,7 @@ use App\Models\Order;
 use App\Models\Plan;
 use App\Models\User;
 use App\Services\Plugin\HookManager;
+use App\Services\NotificationService;
 use App\Utils\CacheKey;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -233,6 +234,9 @@ class OrderService
         
         // Plugin hook: payment notify success
         HookManager::call('payment.notify.success', $order);
+        
+        // Send payment success notification
+        NotificationService::paymentSuccess($order);
         
         try {
             OrderHandleJob::dispatchNow($order->trade_no);

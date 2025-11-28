@@ -7,35 +7,40 @@
 <div x-data="settingsPage()" x-init="loadSettings()">
     <!-- Settings Tabs -->
     <div class="mb-6">
-        <nav class="flex space-x-4 border-b border-gray-200 pb-4">
+        <nav class="flex space-x-4 border-b border-gray-200 pb-4 overflow-x-auto">
             <button @click="activeTab = 'site'" 
                     :class="activeTab === 'site' ? 'text-indigo-600 border-indigo-600' : 'text-gray-500 border-transparent'"
-                    class="px-4 py-2 text-sm font-medium border-b-2 hover:text-gray-700">
+                    class="px-4 py-2 text-sm font-medium border-b-2 hover:text-gray-700 whitespace-nowrap">
                 Site
+            </button>
+            <button @click="activeTab = 'notify'" 
+                    :class="activeTab === 'notify' ? 'text-indigo-600 border-indigo-600' : 'text-gray-500 border-transparent'"
+                    class="px-4 py-2 text-sm font-medium border-b-2 hover:text-gray-700 whitespace-nowrap">
+                🔔 Notifications
             </button>
             <button @click="activeTab = 'subscribe'" 
                     :class="activeTab === 'subscribe' ? 'text-indigo-600 border-indigo-600' : 'text-gray-500 border-transparent'"
-                    class="px-4 py-2 text-sm font-medium border-b-2 hover:text-gray-700">
+                    class="px-4 py-2 text-sm font-medium border-b-2 hover:text-gray-700 whitespace-nowrap">
                 Subscribe
             </button>
             <button @click="activeTab = 'email'" 
                     :class="activeTab === 'email' ? 'text-indigo-600 border-indigo-600' : 'text-gray-500 border-transparent'"
-                    class="px-4 py-2 text-sm font-medium border-b-2 hover:text-gray-700">
+                    class="px-4 py-2 text-sm font-medium border-b-2 hover:text-gray-700 whitespace-nowrap">
                 Email
             </button>
             <button @click="activeTab = 'telegram'" 
                     :class="activeTab === 'telegram' ? 'text-indigo-600 border-indigo-600' : 'text-gray-500 border-transparent'"
-                    class="px-4 py-2 text-sm font-medium border-b-2 hover:text-gray-700">
+                    class="px-4 py-2 text-sm font-medium border-b-2 hover:text-gray-700 whitespace-nowrap">
                 Telegram
             </button>
             <button @click="activeTab = 'invite'" 
                     :class="activeTab === 'invite' ? 'text-indigo-600 border-indigo-600' : 'text-gray-500 border-transparent'"
-                    class="px-4 py-2 text-sm font-medium border-b-2 hover:text-gray-700">
+                    class="px-4 py-2 text-sm font-medium border-b-2 hover:text-gray-700 whitespace-nowrap">
                 Invite
             </button>
             <button @click="activeTab = 'safe'" 
                     :class="activeTab === 'safe' ? 'text-indigo-600 border-indigo-600' : 'text-gray-500 border-transparent'"
-                    class="px-4 py-2 text-sm font-medium border-b-2 hover:text-gray-700">
+                    class="px-4 py-2 text-sm font-medium border-b-2 hover:text-gray-700 whitespace-nowrap">
                 Security
             </button>
         </nav>
@@ -88,6 +93,109 @@
                     <input type="checkbox" x-model="settings.site.force_https" class="rounded border-gray-300 text-indigo-600">
                     <span class="ml-2 text-sm text-gray-700">Force HTTPS</span>
                 </label>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Notifications Settings -->
+    <div x-show="activeTab === 'notify'" x-cloak class="space-y-6">
+        <div class="card p-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-2">🔔 Notification Settings</h3>
+            <p class="text-sm text-gray-500 mb-6">Configure how and when notifications are sent to admins and users.</p>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Admin Notification Channels -->
+                <div class="md:col-span-2 bg-blue-50 p-4 rounded-lg">
+                    <h4 class="font-medium text-blue-900 mb-3">📬 Admin Notification Channels</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Admin Email Address</label>
+                            <input type="email" x-model="settings.notify.notify_admin_email" class="input-field" placeholder="admin@example.com">
+                            <p class="text-xs text-gray-500 mt-1">Receive email notifications for payments, tickets, etc.</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Telegram Chat ID</label>
+                            <input type="text" x-model="settings.notify.notify_telegram_chat_id" class="input-field" placeholder="123456789">
+                            <p class="text-xs text-gray-500 mt-1">Your personal chat ID or group ID for Telegram notifications</p>
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Discord Webhook URL</label>
+                            <input type="url" x-model="settings.notify.notify_discord_webhook" class="input-field" placeholder="https://discord.com/api/webhooks/...">
+                            <p class="text-xs text-gray-500 mt-1">Get notifications in Discord channel</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Admin Notification Types -->
+                <div class="md:col-span-2 bg-gray-50 p-4 rounded-lg">
+                    <h4 class="font-medium text-gray-900 mb-3">📋 Admin Notifications</h4>
+                    <div class="space-y-3">
+                        <label class="flex items-center">
+                            <input type="checkbox" x-model="settings.notify.notify_admin_new_user" class="rounded border-gray-300 text-indigo-600">
+                            <span class="ml-2 text-sm text-gray-700">New user registration</span>
+                        </label>
+                        <label class="flex items-center">
+                            <input type="checkbox" x-model="settings.notify.notify_admin_payment" class="rounded border-gray-300 text-indigo-600">
+                            <span class="ml-2 text-sm text-gray-700">Payment received</span>
+                        </label>
+                        <label class="flex items-center">
+                            <input type="checkbox" x-model="settings.notify.notify_admin_ticket" class="rounded border-gray-300 text-indigo-600">
+                            <span class="ml-2 text-sm text-gray-700">New ticket / ticket reply</span>
+                        </label>
+                        <label class="flex items-center">
+                            <input type="checkbox" x-model="settings.notify.notify_admin_server_down" class="rounded border-gray-300 text-indigo-600">
+                            <span class="ml-2 text-sm text-gray-700">Server offline alerts</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card p-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-2">📧 User Email Notifications</h3>
+            <p class="text-sm text-gray-500 mb-6">Default email alerts sent to users.</p>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="md:col-span-2">
+                    <div class="space-y-3">
+                        <label class="flex items-center">
+                            <input type="checkbox" x-model="settings.notify.notify_user_welcome" class="rounded border-gray-300 text-indigo-600">
+                            <span class="ml-2 text-sm text-gray-700">Welcome email on registration</span>
+                        </label>
+                        <label class="flex items-center">
+                            <input type="checkbox" x-model="settings.notify.notify_user_order_created" class="rounded border-gray-300 text-indigo-600">
+                            <span class="ml-2 text-sm text-gray-700">Order created notification</span>
+                        </label>
+                        <label class="flex items-center">
+                            <input type="checkbox" x-model="settings.notify.notify_user_payment_success" class="rounded border-gray-300 text-indigo-600">
+                            <span class="ml-2 text-sm text-gray-700">Payment success confirmation</span>
+                        </label>
+                        <label class="flex items-center">
+                            <input type="checkbox" x-model="settings.notify.notify_user_ticket_reply" class="rounded border-gray-300 text-indigo-600">
+                            <span class="ml-2 text-sm text-gray-700">Ticket reply notification</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card p-6 bg-green-50 border border-green-200">
+            <div class="flex items-start">
+                <div class="flex-shrink-0">
+                    <svg class="h-5 w-5 text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                    </svg>
+                </div>
+                <div class="ml-3">
+                    <h3 class="text-sm font-medium text-green-800">Quick Setup Guide</h3>
+                    <div class="mt-2 text-sm text-green-700">
+                        <ul class="list-disc pl-5 space-y-1">
+                            <li><strong>Admin Email:</strong> Enter your email to receive admin notifications</li>
+                            <li><strong>Telegram:</strong> Set bot token in Telegram tab, then enter your Chat ID here</li>
+                            <li><strong>Discord:</strong> Create a webhook in your Discord server and paste the URL</li>
+                        </ul>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -285,6 +393,19 @@ function settingsPage() {
         activeTab: 'site',
         settings: {
             site: {},
+            notify: {
+                notify_admin_email: '',
+                notify_telegram_chat_id: '',
+                notify_discord_webhook: '',
+                notify_admin_new_user: true,
+                notify_admin_payment: true,
+                notify_admin_ticket: true,
+                notify_admin_server_down: true,
+                notify_user_welcome: true,
+                notify_user_order_created: true,
+                notify_user_payment_success: true,
+                notify_user_ticket_reply: true
+            },
             subscribe: {},
             email: {},
             telegram: {},
@@ -298,7 +419,12 @@ function settingsPage() {
                 this.$root.loading = true;
                 const response = await this.$root.api('/admin/config/fetch');
                 if (response.data) {
-                    this.settings = response.data;
+                    // Merge loaded settings with defaults
+                    Object.keys(this.settings).forEach(category => {
+                        if (response.data[category]) {
+                            this.settings[category] = {...this.settings[category], ...response.data[category]};
+                        }
+                    });
                 }
                 
                 // Load email templates
