@@ -1,111 +1,64 @@
 # V2Board 通知系统配置指南
 
-本系统已内置完整的通知功能，支持 Telegram、Discord 和邮件通知。无需安装额外插件，只需配置几个参数即可。
-
-## 功能介绍
-
-### 管理员通知（发送到 Telegram/Discord/邮件）
-- ✅ 新用户注册通知
-- ✅ 用户付款成功通知
-- ✅ 新工单创建通知
-- ✅ 用户工单回复通知
-
-### 用户邮件通知（自动发送给用户）
-- ✅ 注册欢迎邮件
-- ✅ 订单创建提醒
-- ✅ 支付成功确认
-- ✅ 工单回复通知
-
-所有通知内容均为**中文**，无需额外配置。
-
----
+本系统为 V2Board 集成了自动通知功能，支持通过 Telegram、Discord 和邮件向管理员发送通知，同时支持向用户发送中文邮件通知。
 
 ## 配置方法
-
-### 方法一：通过 .env 文件配置（推荐，最简单）
 
 编辑项目根目录的 `.env` 文件，添加以下配置：
 
 ```env
 # Telegram 机器人 Token (从 @BotFather 获取)
-V2BOARD_TELEGRAM_BOT_TOKEN=你的Bot Token
+V2BOARD_TELEGRAM_BOT_TOKEN=你的Bot_Token
 
-# Telegram Chat ID (发送消息给 @userinfobot 获取)
-V2BOARD_NOTIFY_TELEGRAM_CHAT_ID=你的Chat ID
+# Telegram Chat ID (发送 /getid 给 @userinfobot 获取你的 Chat ID)
+V2BOARD_NOTIFY_TELEGRAM_CHAT_ID=你的Chat_ID
 
 # Discord Webhook URL (可选)
-V2BOARD_NOTIFY_DISCORD_WEBHOOK=你的Discord Webhook URL
+V2BOARD_NOTIFY_DISCORD_WEBHOOK=你的Discord_Webhook_URL
 
-# 管理员邮箱 (可选，接收管理通知)
+# 管理员邮箱 (可选，用于接收邮件通知)
 V2BOARD_NOTIFY_ADMIN_EMAIL=admin@example.com
 ```
 
-保存文件后即可生效，无需重启服务。
+## 获取 Telegram Bot Token
 
-### 方法二：通过数据库配置
-
-如果不方便编辑 .env 文件，也可以在 `v2_settings` 表中添加配置：
-
-```sql
--- Telegram 机器人 Token
-INSERT INTO v2_settings (name, value) VALUES ('telegram_bot_token', '你的Bot Token') 
-ON DUPLICATE KEY UPDATE value = '你的Bot Token';
-
--- Telegram 接收通知的 Chat ID
-INSERT INTO v2_settings (name, value) VALUES ('notify_telegram_chat_id', '你的Chat ID') 
-ON DUPLICATE KEY UPDATE value = '你的Chat ID';
-
--- Discord Webhook URL
-INSERT INTO v2_settings (name, value) VALUES ('notify_discord_webhook', '你的Discord Webhook URL') 
-ON DUPLICATE KEY UPDATE value = '你的Discord Webhook URL';
-
--- 管理员邮箱（接收邮件通知）
-INSERT INTO v2_settings (name, value) VALUES ('notify_admin_email', 'admin@example.com') 
-ON DUPLICATE KEY UPDATE value = 'admin@example.com';
-```
-
-**注意：** .env 配置优先级高于数据库配置。
-
----
-
-## 配置详解
-
-### 1. Telegram 配置
-
-#### 获取 Bot Token
 1. 在 Telegram 中搜索 `@BotFather`
-2. 发送 `/newbot` 创建新机器人
-3. 按提示设置机器人名称
-4. 获取 Bot Token（格式如：`123456789:ABCdefGhIJKlmNoPQRsTUVwxyZ`）
+2. 发送 `/newbot`
+3. 按照提示设置机器人名称
+4. 获取 Token，格式类似：`1234567890:ABCdefGhIjKlMnOpQrStUvWxYz`
 
-#### 获取 Chat ID
+## 获取 Telegram Chat ID
+
 1. 在 Telegram 中搜索 `@userinfobot`
-2. 发送任意消息
+2. 发送 `/start`
 3. 机器人会返回你的 Chat ID
 
-或者创建群组：
-1. 创建 Telegram 群组
-2. 将机器人添加到群组
-3. 在群组中发送 `/start`
-4. 访问 `https://api.telegram.org/bot{TOKEN}/getUpdates` 获取群组 Chat ID
+## 获取 Discord Webhook URL
 
-### 2. Discord 配置
+1. 进入 Discord 服务器设置
+2. 选择 "整合" -> "Webhook"
+3. 创建新 Webhook
+4. 复制 Webhook URL
 
-1. 在 Discord 服务器中选择一个频道
-2. 右键点击频道 → 「编辑频道」
-3. 进入「整合」→「Webhook」
-4. 点击「新建 Webhook」
-5. 复制 Webhook URL
+## 通知功能
 
-### 3. 管理员邮件配置
+### 管理员通知（发送到 Telegram/Discord/邮箱）
 
-直接填写管理员邮箱地址即可。确保 V2Board 的邮件发送功能已正确配置。
+- 🎉 新用户注册
+- 💰 用户付款成功
+- 📮 新工单创建
+- 📮 工单用户回复
 
----
+### 用户邮件通知（中文内容）
+
+- 欢迎邮件（注册成功后）
+- 订单创建提醒
+- 支付成功确认
+- 工单回复通知（管理员回复后）
 
 ## 通知示例
 
-### Telegram/Discord 通知示例
+### Telegram/Discord 通知格式
 
 ```
 🎉 新用户注册
@@ -124,52 +77,18 @@ ON DUPLICATE KEY UPDATE value = 'admin@example.com';
 🕐 时间: 2024-01-01 12:00:00
 ```
 
-```
-📮 新工单 #123
-━━━━━━━━━━━━━━━━━━━━
-📧 用户: user@example.com
-📝 主题: 无法连接服务器
-💬 内容: 请帮我检查一下...
-🕐 时间: 2024-01-01 12:00:00
-```
+## 核心文件
 
----
+| 文件路径 | 说明 |
+|---------|------|
+| `.env` | 通知配置（Telegram/Discord/邮箱） |
+| `app/Services/NotificationService.php` | 通知服务核心代码 |
+| `app/Services/OrderService.php` | 支付成功触发通知 |
+| `app/Services/TicketService.php` | 工单回复触发通知 |
 
-## 文件说明
+## 注意事项
 
-通知系统涉及的文件：
-
-| 文件 | 说明 |
-|------|------|
-| `app/Services/NotificationService.php` | 通知服务核心，处理所有通知逻辑 |
-| `app/Services/OrderService.php` | 订单服务，支付成功时触发通知 |
-| `app/Services/TicketService.php` | 工单服务，工单回复时触发通知 |
-| `app/Http/Controllers/Passport/AuthController.php` | 注册控制器，新用户注册时触发通知 |
-| `app/Http/Controllers/User/OrderController.php` | 用户订单控制器，订单创建时触发通知 |
-| `app/Http/Controllers/User/TicketController.php` | 用户工单控制器，工单创建时触发通知 |
-
----
-
-## 常见问题
-
-### Q: 为什么收不到 Telegram 通知？
-A: 请检查：
-1. Bot Token 是否正确
-2. Chat ID 是否正确
-3. 机器人是否已添加到群组（如果使用群组）
-4. 确保机器人有发送消息的权限
-
-### Q: 为什么收不到邮件通知？
-A: 请检查：
-1. V2Board 邮件配置是否正确
-2. 管理员邮箱是否正确
-3. 查看 `storage/logs/laravel.log` 日志文件
-
-### Q: 如何禁用某种通知？
-A: 将对应的配置项设置为空即可。例如，不配置 `notify_discord_webhook` 则不会发送 Discord 通知。
-
----
-
-## 技术支持
-
-如有问题，请提交 Issue 或联系开发者。
+1. 配置修改后立即生效，无需重启
+2. 如果某个通知渠道未配置，该渠道的通知将被跳过
+3. 所有通知内容均为中文
+4. 通知发送失败不会影响正常业务流程

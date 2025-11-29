@@ -9,49 +9,40 @@ use App\Models\Ticket;
 use App\Models\TicketMessage;
 use App\Models\User;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Http;
 
 /**
- * V2Board 通知服务
+ * V2Board Notification Service
  * 
- * 简单易用的通知系统，支持:
- * - Telegram 机器人通知管理员
- * - Discord Webhook 通知
- * - 邮件通知管理员
- * - 用户邮件通知（中文默认内容）
+ * Simple notification system for V2Board:
+ * - Telegram bot notifications to admin
+ * - Discord webhook notifications
+ * - Email notifications to admin
+ * - User email notifications (Chinese content)
  * 
- * 配置方式（推荐 .env 文件，无需访问数据库）:
+ * Configuration (use .env file, no database access needed):
  * 
- * 在 .env 文件中添加:
- * V2BOARD_TELEGRAM_BOT_TOKEN=你的Bot Token
- * V2BOARD_NOTIFY_TELEGRAM_CHAT_ID=你的Chat ID
+ * Add to .env file:
+ * V2BOARD_TELEGRAM_BOT_TOKEN=Your Bot Token
+ * V2BOARD_NOTIFY_TELEGRAM_CHAT_ID=Your Chat ID
  * V2BOARD_NOTIFY_DISCORD_WEBHOOK=Discord Webhook URL
  * V2BOARD_NOTIFY_ADMIN_EMAIL=admin@example.com
- * 
- * 或者在数据库 v2_settings 表中设置:
- * - telegram_bot_token: Telegram 机器人 Token
- * - notify_telegram_chat_id: Telegram 接收通知的 Chat ID
- * - notify_discord_webhook: Discord Webhook URL
- * - notify_admin_email: 管理员邮箱
  */
 class NotificationService
 {
     /**
-     * 获取配置项（优先从 .env，然后从数据库）
+     * Get config value (priority: .env, then database)
      */
-    protected static function getConfig(string $key, $default = null)
+    protected static function getConfig($key, $default = null)
     {
-        // 配置映射: .env 名称 => v2board 配置名称
-        $envMapping = [
+        $envMapping = array(
             'telegram_bot_token' => 'V2BOARD_TELEGRAM_BOT_TOKEN',
             'notify_telegram_chat_id' => 'V2BOARD_NOTIFY_TELEGRAM_CHAT_ID',
             'notify_discord_webhook' => 'V2BOARD_NOTIFY_DISCORD_WEBHOOK',
             'notify_admin_email' => 'V2BOARD_NOTIFY_ADMIN_EMAIL',
             'app_name' => 'V2BOARD_APP_NAME',
             'app_url' => 'V2BOARD_APP_URL',
-        ];
+        );
 
-        // 优先从 .env 获取
         if (isset($envMapping[$key])) {
             $envValue = env($envMapping[$key]);
             if ($envValue !== null && $envValue !== '') {
@@ -59,22 +50,21 @@ class NotificationService
             }
         }
 
-        // 回退到数据库配置
         return config("v2board.{$key}", $default);
     }
 
     /**
-     * 用户注册后发送通知
+     * User registered notification
      */
-    public static function userRegistered(User $user): void
+    public static function userRegistered(User $user)
     {
         $siteName = self::getConfig('app_name', 'V2Board');
         $siteUrl = self::getConfig('app_url', '');
 
-        // 发送欢迎邮件给用户
+        // Send welcome email to user
         self::sendUserWelcomeEmail($user, $siteName, $siteUrl);
 
-        // 发送管理员通知
+        // Send admin notification
         $message = "🎉 新用户注册\n";
         $message .= "━━━━━━━━━━━━━━━━━━━━\n";
         $message .= "📧 邮箱: {$user->email}\n";
@@ -84,9 +74,9 @@ class NotificationService
     }
 
     /**
-     * 订单创建后发送通知
+     * Order created notification
      */
-    public static function orderCreated(Order $order): void
+    public static function orderCreated(Order $order)
     {
         $user = User::find($order->user_id);
         if (!$user) return;
@@ -94,18 +84,15 @@ class NotificationService
         $plan = Plan::find($order->plan_id);
         $siteName = self::getConfig('app_name', 'V2Board');
         $siteUrl = self::getConfig('app_url', '');
-        $amount = number_format($order->total_amount / 100, 2);
 
-        // 发送订单创建邮件给用户
+        // Send order created email to user
         self::sendOrderCreatedEmail($user, $order, $plan, $siteName, $siteUrl);
-
-        // 不需要通知管理员创建订单（避免过多通知）
     }
 
     /**
-     * 支付成功后发送通知
+     * Payment success notification
      */
-    public static function paymentSuccess(Order $order): void
+    public static function paymentSuccess(Order $order)
     {
         $user = User::find($order->user_id);
         if (!$user) return;
@@ -116,10 +103,10 @@ class NotificationService
         $amount = number_format($order->total_amount / 100, 2);
         $planName = $plan ? $plan->name : '套餐';
 
-        // 发送支付成功邮件给用户
+        // Send payment success email to user
         self::sendPaymentSuccessEmail($user, $order, $plan, $siteName, $siteUrl);
 
-        // 发送管理员通知
+        // Send admin notification
         $message = "💰 收到新付款\n";
         $message .= "━━━━━━━━━━━━━━━━━━━━\n";
         $message .= "📧 用户: {$user->email}\n";
@@ -132,21 +119,21 @@ class NotificationService
     }
 
     /**
-     * 工单创建后发送通知
+     * Ticket created notification
      */
-    public static function ticketCreated(Ticket $ticket): void
+    public static function ticketCreated(Ticket $ticket, $content = '')
     {
         $user = User::find($ticket->user_id);
         if (!$user) return;
 
-        // 获取工单内容
-        $ticketMessage = TicketMessage::where('ticket_id', $ticket->id)
-            ->orderBy('id', 'asc')
-            ->first();
-        
-        $content = $ticketMessage ? mb_substr($ticketMessage->message, 0, 200) : '无内容';
+        if (empty($content)) {
+            $ticketMessage = TicketMessage::where('ticket_id', $ticket->id)
+                ->orderBy('id', 'asc')
+                ->first();
+            $content = $ticketMessage ? mb_substr($ticketMessage->message, 0, 200) : '无内容';
+        }
 
-        // 发送管理员通知
+        // Send admin notification
         $message = "📮 新工单 #{$ticket->id}\n";
         $message .= "━━━━━━━━━━━━━━━━━━━━\n";
         $message .= "📧 用户: {$user->email}\n";
@@ -158,16 +145,16 @@ class NotificationService
     }
 
     /**
-     * 用户回复工单后发送通知
+     * User replied ticket notification
      */
-    public static function ticketReplied(Ticket $ticket, TicketMessage $message): void
+    public static function ticketReplied(Ticket $ticket, TicketMessage $ticketMessage)
     {
         $user = User::find($ticket->user_id);
         if (!$user) return;
 
-        $content = mb_substr($message->message, 0, 200);
+        $content = mb_substr($ticketMessage->message, 0, 200);
 
-        // 发送管理员通知
+        // Send admin notification
         $adminMessage = "📮 工单回复 #{$ticket->id}\n";
         $adminMessage .= "━━━━━━━━━━━━━━━━━━━━\n";
         $adminMessage .= "📧 用户: {$user->email}\n";
@@ -179,9 +166,9 @@ class NotificationService
     }
 
     /**
-     * 管理员回复工单后发送通知给用户
+     * Admin replied ticket - send email to user
      */
-    public static function ticketAdminReplied(Ticket $ticket, TicketMessage $message): void
+    public static function ticketAdminReplied(Ticket $ticket, TicketMessage $ticketMessage)
     {
         $user = User::find($ticket->user_id);
         if (!$user) return;
@@ -192,12 +179,9 @@ class NotificationService
         self::sendTicketReplyEmail($user, $ticket, $siteName, $siteUrl);
     }
 
-    // ==================== 用户邮件（中文默认内容）====================
+    // ==================== User Emails (Chinese content) ====================
 
-    /**
-     * 发送欢迎邮件
-     */
-    protected static function sendUserWelcomeEmail(User $user, string $siteName, string $siteUrl): void
+    protected static function sendUserWelcomeEmail(User $user, $siteName, $siteUrl)
     {
         try {
             $content = "您好！\n\n";
@@ -212,25 +196,22 @@ class NotificationService
             $content .= "如有任何问题，请通过工单系统联系我们。\n\n";
             $content .= "{$siteName} 团队";
 
-            SendEmailJob::dispatch([
+            SendEmailJob::dispatch(array(
                 'email' => $user->email,
                 'subject' => "欢迎加入 {$siteName}",
                 'template_name' => 'notify',
-                'template_value' => [
+                'template_value' => array(
                     'name' => '用户',
                     'content' => $content,
                     'url' => $siteUrl
-                ]
-            ]);
+                )
+            ));
         } catch (\Exception $e) {
-            Log::error('NotificationService: 发送欢迎邮件失败', ['error' => $e->getMessage()]);
+            Log::error('NotificationService: Failed to send welcome email', array('error' => $e->getMessage()));
         }
     }
 
-    /**
-     * 发送订单创建邮件
-     */
-    protected static function sendOrderCreatedEmail(User $user, Order $order, ?Plan $plan, string $siteName, string $siteUrl): void
+    protected static function sendOrderCreatedEmail(User $user, Order $order, $plan, $siteName, $siteUrl)
     {
         try {
             $amount = number_format($order->total_amount / 100, 2);
@@ -248,25 +229,22 @@ class NotificationService
             $content .= "前往支付: {$siteUrl}\n\n";
             $content .= "{$siteName} 团队";
 
-            SendEmailJob::dispatch([
+            SendEmailJob::dispatch(array(
                 'email' => $user->email,
                 'subject' => "订单待支付 - {$siteName}",
                 'template_name' => 'notify',
-                'template_value' => [
+                'template_value' => array(
                     'name' => '用户',
                     'content' => $content,
                     'url' => $siteUrl
-                ]
-            ]);
+                )
+            ));
         } catch (\Exception $e) {
-            Log::error('NotificationService: 发送订单邮件失败', ['error' => $e->getMessage()]);
+            Log::error('NotificationService: Failed to send order email', array('error' => $e->getMessage()));
         }
     }
 
-    /**
-     * 发送支付成功邮件
-     */
-    protected static function sendPaymentSuccessEmail(User $user, Order $order, ?Plan $plan, string $siteName, string $siteUrl): void
+    protected static function sendPaymentSuccessEmail(User $user, Order $order, $plan, $siteName, $siteUrl)
     {
         try {
             $amount = number_format($order->total_amount / 100, 2);
@@ -289,25 +267,22 @@ class NotificationService
             $content .= "如有任何问题，请随时联系我们。\n\n";
             $content .= "{$siteName} 团队";
 
-            SendEmailJob::dispatch([
+            SendEmailJob::dispatch(array(
                 'email' => $user->email,
                 'subject' => "支付成功 - {$siteName}",
                 'template_name' => 'notify',
-                'template_value' => [
+                'template_value' => array(
                     'name' => '用户',
                     'content' => $content,
                     'url' => $siteUrl
-                ]
-            ]);
+                )
+            ));
         } catch (\Exception $e) {
-            Log::error('NotificationService: 发送支付成功邮件失败', ['error' => $e->getMessage()]);
+            Log::error('NotificationService: Failed to send payment email', array('error' => $e->getMessage()));
         }
     }
 
-    /**
-     * 发送工单回复邮件
-     */
-    protected static function sendTicketReplyEmail(User $user, Ticket $ticket, string $siteName, string $siteUrl): void
+    protected static function sendTicketReplyEmail(User $user, Ticket $ticket, $siteName, $siteUrl)
     {
         try {
             $content = "您好！\n\n";
@@ -321,37 +296,31 @@ class NotificationService
             $content .= "查看工单: {$siteUrl}\n\n";
             $content .= "{$siteName} 团队";
 
-            SendEmailJob::dispatch([
+            SendEmailJob::dispatch(array(
                 'email' => $user->email,
                 'subject' => "工单回复 - {$siteName}",
                 'template_name' => 'notify',
-                'template_value' => [
+                'template_value' => array(
                     'name' => '用户',
                     'content' => $content,
                     'url' => $siteUrl
-                ]
-            ]);
+                )
+            ));
         } catch (\Exception $e) {
-            Log::error('NotificationService: 发送工单回复邮件失败', ['error' => $e->getMessage()]);
+            Log::error('NotificationService: Failed to send ticket reply email', array('error' => $e->getMessage()));
         }
     }
 
-    // ==================== 管理员通知 ====================
+    // ==================== Admin Notifications ====================
 
-    /**
-     * 发送管理员通知（Telegram、Discord、邮件）
-     */
-    public static function sendAdminNotification(string $title, string $message): void
+    public static function sendAdminNotification($title, $message)
     {
         self::sendTelegram($message);
         self::sendDiscord($title, $message);
         self::sendAdminEmail($title, $message);
     }
 
-    /**
-     * 发送 Telegram 通知
-     */
-    protected static function sendTelegram(string $message): void
+    protected static function sendTelegram($message)
     {
         $botToken = self::getConfig('telegram_bot_token');
         $chatId = self::getConfig('notify_telegram_chat_id');
@@ -360,48 +329,58 @@ class NotificationService
 
         try {
             $url = "https://api.telegram.org/bot{$botToken}/sendMessage";
-            Http::timeout(10)->post($url, [
+            $ch = curl_init();
+            curl_setopt($ch, CURLOPT_URL, $url);
+            curl_setopt($ch, CURLOPT_POST, true);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query(array(
                 'chat_id' => $chatId,
                 'text' => $message,
-                'parse_mode' => 'HTML'
-            ]);
+                'parse_mode' => ''
+            )));
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+            curl_exec($ch);
+            curl_close($ch);
         } catch (\Exception $e) {
-            Log::error('NotificationService: Telegram 发送失败', ['error' => $e->getMessage()]);
+            Log::error('NotificationService: Telegram send failed', array('error' => $e->getMessage()));
         }
     }
 
-    /**
-     * 发送 Discord Webhook 通知
-     */
-    protected static function sendDiscord(string $title, string $message): void
+    protected static function sendDiscord($title, $message)
     {
         $webhookUrl = self::getConfig('notify_discord_webhook');
 
         if (!$webhookUrl) return;
 
         try {
-            // 移除表情符号用于 Discord embed
             $cleanMessage = preg_replace('/[^\x20-\x7E\x{4E00}-\x{9FFF}\n:]/u', '', $message);
             
-            Http::timeout(10)->post($webhookUrl, [
-                'embeds' => [
-                    [
+            $data = json_encode(array(
+                'embeds' => array(
+                    array(
                         'title' => $title,
                         'description' => $cleanMessage,
                         'color' => 3447003,
                         'timestamp' => date('c')
-                    ]
-                ]
-            ]);
+                    )
+                )
+            ));
+
+            $ch = curl_init();
+            curl_setopt($ch, CURLOPT_URL, $webhookUrl);
+            curl_setopt($ch, CURLOPT_POST, true);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type: application/json'));
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+            curl_exec($ch);
+            curl_close($ch);
         } catch (\Exception $e) {
-            Log::error('NotificationService: Discord 发送失败', ['error' => $e->getMessage()]);
+            Log::error('NotificationService: Discord send failed', array('error' => $e->getMessage()));
         }
     }
 
-    /**
-     * 发送管理员邮件
-     */
-    protected static function sendAdminEmail(string $title, string $message): void
+    protected static function sendAdminEmail($title, $message)
     {
         $adminEmail = self::getConfig('notify_admin_email');
         $siteName = self::getConfig('app_name', 'V2Board');
@@ -409,21 +388,20 @@ class NotificationService
         if (!$adminEmail) return;
 
         try {
-            // 移除表情符号用于邮件
             $cleanMessage = preg_replace('/[^\x20-\x7E\x{4E00}-\x{9FFF}\n:]/u', '', $message);
 
-            SendEmailJob::dispatch([
+            SendEmailJob::dispatch(array(
                 'email' => $adminEmail,
                 'subject' => "[{$siteName}] {$title}",
                 'template_name' => 'notify',
-                'template_value' => [
+                'template_value' => array(
                     'name' => '管理员',
                     'content' => $cleanMessage,
                     'url' => self::getConfig('app_url', '')
-                ]
-            ]);
+                )
+            ));
         } catch (\Exception $e) {
-            Log::error('NotificationService: 管理员邮件发送失败', ['error' => $e->getMessage()]);
+            Log::error('NotificationService: Admin email send failed', array('error' => $e->getMessage()));
         }
     }
 }

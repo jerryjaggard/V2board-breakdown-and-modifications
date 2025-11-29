@@ -6,8 +6,6 @@ use App\Jobs\OrderHandleJob;
 use App\Models\Order;
 use App\Models\Plan;
 use App\Models\User;
-use App\Services\Plugin\HookManager;
-use App\Services\NotificationService;
 use App\Utils\CacheKey;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -35,9 +33,6 @@ class OrderService
         $order = $this->order;
         $this->user = User::find($order->user_id);
         $plan = Plan::find($order->plan_id);
-
-        // Plugin hook: before order open
-        HookManager::call('order.open.before', $order);
 
         if ($order->refund_amount) {
             $this->user->balance = $this->user->balance + $order->refund_amount;
@@ -89,9 +84,6 @@ class OrderService
         }
 
         DB::commit();
-
-        // Plugin hook: after order open
-        HookManager::call('order.open.after', $order);
     }
 
 
@@ -110,9 +102,9 @@ class OrderService
             } else {
                 $order->total_amount = $order->total_amount - $order->surplus_amount;
             }
-        } else if ($user->expired_at > time() && $order->plan_id == $user->plan_id) { // 用户订阅未过期且购买订阅与当前订阅相同 === 续费
+        } else if ($user->expired_at > time() && $order->plan_id == $user->plan_id) {
             $order->type = 2;
-        } else { // 新购
+        } else {
             $order->type = 1;
         }
     }
@@ -232,9 +224,6 @@ class OrderService
         $order->callback_no = $callbackNo;
         if (!$order->save()) return false;
         
-        // Plugin hook: payment notify success
-        HookManager::call('payment.notify.success', $order);
-        
         // Send payment success notification
         NotificationService::paymentSuccess($order);
         
@@ -249,10 +238,6 @@ class OrderService
     public function cancel():bool
     {
         $order = $this->order;
-        
-        // Plugin hook: before order cancel
-        HookManager::call('order.cancel.before', $order);
-        
         DB::beginTransaction();
         $order->status = 2;
         if (!$order->save()) {
@@ -267,10 +252,6 @@ class OrderService
             }
         }
         DB::commit();
-        
-        // Plugin hook: after order cancel
-        HookManager::call('order.cancel.after', $order);
-        
         return true;
     }
 
@@ -287,14 +268,11 @@ class OrderService
 
     private function buyByPeriod(Order $order, Plan $plan)
     {
-        // change plan process
         if ((int)$order->type === 3) {
             $this->user->expired_at = time();
         }
         $this->user->transfer_enable = $plan->transfer_enable * 1073741824;
-        // 从一次性转换到循环
         if ($this->user->expired_at === NULL) $this->buyByResetTraffic();
-        // 新购
         if ($order->type === 1) $this->buyByResetTraffic();
         $this->user->plan_id = $plan->id;
         $this->user->group_id = $plan->group_id;

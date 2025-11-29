@@ -6,8 +6,6 @@ use App\Jobs\SendEmailJob;
 use App\Models\Ticket;
 use App\Models\TicketMessage;
 use App\Models\User;
-use App\Services\Plugin\HookManager;
-use App\Services\NotificationService;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
@@ -31,15 +29,10 @@ class TicketService {
         }
         DB::commit();
         
-        // Plugin hook: after user reply
+        // Send notification when user replies
         if ($userId === $ticket->user_id) {
-            HookManager::call('ticket.reply.user.after', $ticket);
-            // Send notification when user replies
             NotificationService::ticketReplied($ticket, $ticketMessage);
         }
-        
-        // Plugin hook: general reply after (for any reply)
-        HookManager::call('ticket.reply.after', [$ticket, $ticketMessage]);
         
         return $ticketMessage;
     }
@@ -72,12 +65,6 @@ class TicketService {
         
         // Send notification when admin replies
         NotificationService::ticketAdminReplied($ticket, $ticketMessage);
-        
-        // Plugin hook: after admin reply
-        HookManager::call('ticket.reply.admin.after', [$ticket, $ticketMessage]);
-        
-        // Plugin hook: general reply after (for any reply)
-        HookManager::call('ticket.reply.after', [$ticket, $ticketMessage]);
     }
 
     // 半小时内不再重复通知
